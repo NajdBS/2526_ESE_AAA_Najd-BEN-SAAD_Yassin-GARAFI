@@ -25,7 +25,7 @@ h_shell_t hshell1;
  */
 static int is_character_valid(char c)
 {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || (c == ' ') || (c == '=');
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || (c == ' ') || (c == '=') || (c == '_');
 }
 
 static int is_string_valid(char* str)
