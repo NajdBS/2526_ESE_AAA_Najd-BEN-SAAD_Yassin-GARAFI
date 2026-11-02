@@ -71,5 +71,5 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 }
 
 void loop(){
-
+	motor_update();
 }
