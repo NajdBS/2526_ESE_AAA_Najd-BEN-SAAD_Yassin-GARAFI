@@ -17,13 +17,12 @@
 #define MOTOR_ARR           4249U
 #define MOTOR_CCR_MIN       0U
 #define MOTOR_CCR_MAX       MOTOR_ARR
-#define MOTOR_CCR_DEFAULT   2550U       /* ~60% pour les tests */
-#define MOTOR_DECALAGE_MAX  MOTOR_ARR
+#define MOTOR_CCR_DEFAULT   2125U       /* 50% = arrêt */
 
 /* Initialisation : démarre les 4 PWM et enregistre la commande shell SET_CCR */
 int motor_init(void);
 
-/* Commande shell SET_CCR <ccr> [decalage] */
+/* Commande shell SET_CCR <valeur> */
 int sh_motor_set_ccr(h_shell_t *h_shell, int argc, char **argv);
 
 #endif /* INC_MOTOR_CONTROL_MOTOR_H_ */

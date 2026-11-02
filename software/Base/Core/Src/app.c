@@ -54,9 +54,19 @@ uint8_t shell_uart2_receive(char *pData, uint16_t size)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart->Instance == USART2) {
-		//		HAL_UART_Transmit(&huart2, (uint8_t *)&shell_uart2_received_char, 1, HAL_MAX_DELAY);
+		/* Relance immediate de la reception pour ne pas rater le prochain caractere */
 		HAL_UART_Receive_IT(&huart2, (uint8_t *)&shell_uart2_received_char, 1);
 		shell_run(&hshell1);
+	}
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+	if (huart->Instance == USART2) {
+		/* En cas d'erreur UART (Overrun ORE, bruit NE, etc.), on efface les flags et on relance */
+		__HAL_UART_CLEAR_OREFLAG(huart);
+		__HAL_UART_CLEAR_NEFLAG(huart);
+		__HAL_UART_CLEAR_FEFLAG(huart);
+		HAL_UART_Receive_IT(&huart2, (uint8_t *)&shell_uart2_received_char, 1);
 	}
 }
 

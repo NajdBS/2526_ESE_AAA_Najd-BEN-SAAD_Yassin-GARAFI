@@ -10,18 +10,7 @@
 h_shell_t hshell1;
 
 /**
- * @brief Transmit function for shell driver using UART2
- */
-
-
-
-/**
  * @brief Checks if a character is valid for a shell command.
- *
- * This function checks if a character is valid for a shell command. Valid characters include alphanumeric characters and spaces.
- *
- * @param c The character to check.
- * @return 1 if the character is valid, 0 otherwise.
  */
 static int is_character_valid(char c)
 {
@@ -32,7 +21,6 @@ static int is_string_valid(char* str)
 {
 	int reading_head = 0;
 	while(str[reading_head] != '\0'){
-		//		char c = str[reading_head];
 		if(!is_character_valid(str[reading_head])){
 			if(reading_head == 0){
 				return 0;
@@ -49,13 +37,6 @@ static int is_string_valid(char* str)
 
 /**
  * @brief Help command implementation.
- *
- * This function is the implementation of the help command. It displays the list of available shell commands and their descriptions.
- *
- * @param h_shell The pointer to the shell instance.
- * @param argc The number of command arguments.
- * @param argv The array of command arguments.
- * @return 0 on success.
  */
 static int sh_help(h_shell_t* h_shell, int argc, char** argv)
 {
@@ -82,15 +63,8 @@ static int sh_test_list(h_shell_t* h_shell, int argc, char** argv)
 	return 0;
 }
 
-
-
-
 /**
  * @brief Initializes the shell instance.
- *
- * This function initializes the shell instance by setting up the internal data structures and registering the help command.
- *
- * @param h_shell The pointer to the shell instance.
  */
 void shell_init(h_shell_t* h_shell)
 {
@@ -108,14 +82,6 @@ void shell_init(h_shell_t* h_shell)
 
 /**
  * @brief Adds a shell command to the instance.
- *
- * This function adds a shell command to the shell instance.
- *
- * @param h_shell The pointer to the shell instance.
- * @param c The character trigger for the command.
- * @param pfunc Pointer to the function implementing the command.
- * @param description The description of the command.
- * @return 0 on success, or a negative error code on failure.
  */
 int shell_add(h_shell_t* h_shell, char* string_func_code, shell_func_pointer_t pfunc, char* description)
 {
@@ -135,18 +101,18 @@ int shell_add(h_shell_t* h_shell, char* string_func_code, shell_func_pointer_t p
 
 /**
  * @brief Executes a shell command.
- *
- * This function executes a shell command based on the input buffer.
- *
- * @param h_shell The pointer to the shell instance.
- * @param buf The input buffer containing the command.
- * @return 0 on success, or a negative error code on failure.
  */
 static int shell_exec(h_shell_t* h_shell, char* buf)
 {
 	int i, argc;
 	char* argv[SHELL_ARGC_MAX];
 	char* p;
+
+	/* Ignore les espaces ou caracteres nuls au tout debut de la ligne */
+	while (*buf == ' ' || *buf == '\0') {
+		if (*buf == '\0') return 0;
+		buf++;
+	}
 
 	// Create argc, argv**
 	argc = 1;
@@ -164,7 +130,6 @@ static int shell_exec(h_shell_t* h_shell, char* buf)
 	{
 		if(strcmp(h_shell->func_list[i].string_func_code, argv[0])==0)
 		{
-
 			return h_shell->func_list[i].func(h_shell, argc, argv);
 		}
 	}
@@ -177,11 +142,6 @@ static int shell_exec(h_shell_t* h_shell, char* buf)
 
 /**
  * @brief Runs the shell.
- *
- * This function runs the shell, processing user commands.
- *
- * @param h_shell The pointer to the shell instance.
- * @return Never returns, it's an infinite loop.
  */
 int shell_run(h_shell_t* h_shell)
 {
@@ -191,37 +151,44 @@ int shell_run(h_shell_t* h_shell)
 
 	h_shell->drv.receive(&c, 1);
 
+	/* Ignore les caracteres nuls parasites */
+	if (c == '\0') {
+		return 0;
+	}
+
 	switch(c)
 	{
-	case '\r': // Process RETURN key
-		//case '\n':
+	case '\r': // Touche Entree Windows
+	case '\n': // Touche Entree Linux/Mac
+		/* Si la commande est vide (ex: double \r\n), on ignore */
+		if (cmd_buffer_index == 0) {
+			return 0;
+		}
 		size = snprintf(h_shell->print_buffer, SHELL_PRINT_BUFFER_SIZE, "\r\n");
 		h_shell->drv.transmit(h_shell->print_buffer, size);
-		h_shell->cmd_buffer[cmd_buffer_index++] = 0; // Add '\0' char at the end of the string
-		//		size = snprintf(h_shell->print_buffer, SHELL_PRINT_BUFFER_SIZE, ":%s\r\n", h_shell->cmd_buffer);
-		//		h_shell->drv.transmit(h_shell->print_buffer, size);
+		h_shell->cmd_buffer[cmd_buffer_index] = '\0'; // Fin de chaine
 		cmd_buffer_index = 0; // Reset buffer
 		shell_exec(h_shell, h_shell->cmd_buffer);
 		h_shell->drv.transmit(PROMPT, sizeof(PROMPT));
 		break;
 
 	case '\b': // Backspace
-		if (cmd_buffer_index > 0) // Is there a character to delete?
+	case 127:  // Delete ASCII
+		if (cmd_buffer_index > 0)
 		{
-			h_shell->cmd_buffer[cmd_buffer_index] = '\0'; // Removes character from the buffer, '\0' character is required for shell_exec to work
 			cmd_buffer_index--;
-			h_shell->drv.transmit("\b \b", 3); // "Deletes" the character on the terminal
+			h_shell->cmd_buffer[cmd_buffer_index] = '\0';
+			h_shell->drv.transmit("\b \b", 3);
 		}
 		break;
 
-	default: // Other characters
-		// Only store characters if the buffer has space
-		if (cmd_buffer_index < SHELL_CMD_BUFFER_SIZE)
+	default:
+		if (cmd_buffer_index < (SHELL_CMD_BUFFER_SIZE - 1))
 		{
 			if (is_character_valid(c))
 			{
 				h_shell->drv.transmit(&c, 1); // echo
-				h_shell->cmd_buffer[cmd_buffer_index++] = c; // Store
+				h_shell->cmd_buffer[cmd_buffer_index++] = c;
 			}
 		}
 	}

@@ -8,18 +8,18 @@
 #include "motor_control/motor.h"
 #include <stdlib.h>
 
-/* valeurs courantes */
-static uint32_t motor_ccr      = MOTOR_CCR_DEFAULT;
-static uint32_t motor_decalage = 0U;
+/* valeur courante du CCR bras U */
+static uint32_t motor_ccr = MOTOR_CCR_DEFAULT;
 
-/* applique CCR aux deux bras : U=CH1, V=CH2 avec décalage */
+/* applique la commande complémentaire décalée aux 4 transistors :
+ * Bras U (CH1/CH1N) : CCR1 = motor_ccr
+ * Bras V (CH2/CH2N) : CCR2 = MOTOR_ARR - motor_ccr */
 static void motor_apply(void)
 {
-    uint32_t ccr_v = motor_ccr + motor_decalage;
-    if (ccr_v > MOTOR_CCR_MAX)
-        ccr_v = MOTOR_CCR_MAX;
+    uint32_t ccr_u = motor_ccr;
+    uint32_t ccr_v = MOTOR_ARR - motor_ccr;
 
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, motor_ccr);
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, ccr_u);
     __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, ccr_v);
 }
 
@@ -34,48 +34,42 @@ int motor_init(void)
     motor_apply();
 
     return shell_add(&hshell1, "SET_CCR", sh_motor_set_ccr,
-                     "Commande vitesse : SET_CCR <ccr> [decalage]");
+                     "Commande vitesse : SET_CCR <valeur>");
 }
 
-/* SET_CCR <ccr (0-4249)> [decalage]
- * ccr      : rapport cyclique bras U
- * decalage : décalage de phase bras V (optionnel, conservé si absent) */
+/* SET_CCR <valeur> (de 0 a MOTOR_ARR = 4249)
+ * 2125 = 50% = arret
+ * > 2125 = avance
+ * < 2125 = recule */
 int sh_motor_set_ccr(h_shell_t *h_shell, int argc, char **argv)
 {
     int size;
 
-    if (argc < 2 || argc > 3) {
+    if (argc != 2) {
         size = snprintf(h_shell->print_buffer, SHELL_PRINT_BUFFER_SIZE,
-                        "Usage: SET_CCR <ccr (0-%lu)> [decalage]\r\n",
+                        "Usage: SET_CCR <valeur (0-%lu)>\r\n",
                         (unsigned long)MOTOR_CCR_MAX);
         h_shell->drv.transmit(h_shell->print_buffer, size);
         return HAL_ERROR;
     }
 
-    /* lecture et saturation du CCR */
+    /* conversion en entier */
     int raw_ccr = atoi(argv[1]);
+
+    /* verification et saturation au maximum autorise */
     if (raw_ccr < (int)MOTOR_CCR_MIN) raw_ccr = (int)MOTOR_CCR_MIN;
     if (raw_ccr > (int)MOTOR_CCR_MAX) raw_ccr = (int)MOTOR_CCR_MAX;
     motor_ccr = (uint32_t)raw_ccr;
 
-    /* décalage optionnel */
-    if (argc == 3) {
-        int raw_dec = atoi(argv[2]);
-        if (raw_dec < 0)                       raw_dec = 0;
-        if (raw_dec > (int)MOTOR_DECALAGE_MAX) raw_dec = (int)MOTOR_DECALAGE_MAX;
-        motor_decalage = (uint32_t)raw_dec;
-    }
-
+    /* application aux 4 transistors */
     motor_apply();
 
-    uint32_t ccr_v = motor_ccr + motor_decalage;
-    if (ccr_v > MOTOR_CCR_MAX) ccr_v = MOTOR_CCR_MAX;
-
+    uint32_t ccr_v = MOTOR_ARR - motor_ccr;
     size = snprintf(h_shell->print_buffer, SHELL_PRINT_BUFFER_SIZE,
-                    "OK: CCR_U=%lu  CCR_V=%lu  decalage=%lu\r\n",
+                    "OK: CCR1=%lu  CCR2=%lu (max=%lu)\r\n",
                     (unsigned long)motor_ccr,
                     (unsigned long)ccr_v,
-                    (unsigned long)motor_decalage);
+                    (unsigned long)MOTOR_CCR_MAX);
     h_shell->drv.transmit(h_shell->print_buffer, size);
 
     return HAL_OK;
