@@ -10,6 +10,9 @@
 #include "user_interface/shell.h"
 #include "user_interface/led.h"
 #include "motor_control/motor.h"
+#include "motor_control/asserv.h"
+#include "acquisition/input_analog.h"
+#include "acquisition/input_encoder.h"
 
 static char shell_uart2_received_char;
 
@@ -31,13 +34,13 @@ void init_device(void){
 	// MOTOR
 	motor_init();
 	// ASSERV (PID)
-//	asserv_init();
+	asserv_init();
 //
 // Initialisation data acquistion
 	// ANALOG INPUT
-//	input_analog_init();
+	input_analog_init();
 	// ENCODER INPUT
-//	input_encoder_init();
+	input_encoder_init();
 }
 
 uint8_t shell_uart2_transmit(const char *pData, uint16_t size)

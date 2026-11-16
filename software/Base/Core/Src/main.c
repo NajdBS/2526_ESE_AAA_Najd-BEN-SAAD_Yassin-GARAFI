@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "dma.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -26,6 +27,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "app.h"
+#include "acquisition/input_encoder.h"
+#include "motor_control/asserv.h"
 
 /* USER CODE END Includes */
 
@@ -89,12 +92,14 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_ADC2_Init();
   MX_ADC1_Init();
   MX_TIM1_Init();
   MX_TIM3_Init();
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
 	init_device();
   /* USER CODE END 2 */
@@ -178,7 +183,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-
+  if (htim->Instance == TIM7)
+  {
+    input_encoder_update();
+    asserv_update();
+  }
   /* USER CODE END Callback 1 */
 }
 

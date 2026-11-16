@@ -30,6 +30,11 @@ int motor_init(void);
 /* Fonction a appeler dans la fonction loop() de app.c pour gerer la rampe */
 void motor_update(void);
 
+/* Acces direct pour l'asservissement */
+void motor_set_ccr_direct(uint32_t ccr);
+uint32_t motor_get_ccr(void);
+uint8_t motor_is_running(void);
+
 /* Commandes shell */
 int sh_motor_start(h_shell_t *h_shell, int argc, char **argv);
 int sh_motor_stop(h_shell_t *h_shell, int argc, char **argv);

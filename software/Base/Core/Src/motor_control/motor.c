@@ -34,6 +34,11 @@ int motor_init(void)
     motor_ccr_target = MOTOR_CCR_DEFAULT;
     motor_apply();
 
+    /* demarrage du compteur TIM1 pour cadencer l'ADC via TRGO meme moteur arrete */
+    if (HAL_TIM_Base_Start(&htim1) != HAL_OK) {
+        return HAL_ERROR;
+    }
+
     /* enregistrement des commandes shell */
     shell_add(&hshell1, "start", sh_motor_start, "Demarre les PWM a 50%");
     shell_add(&hshell1, "stop", sh_motor_stop, "Arrete les PWM");
@@ -72,6 +77,9 @@ int sh_motor_stop(h_shell_t *h_shell, int argc, char **argv)
     HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_1);
     HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
     HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_2);
+
+    /* garde le compteur TIM1 actif pour continuer le declenchement ADC (TRGO) */
+    __HAL_TIM_ENABLE(&htim1);
 
     motor_running = 0;
     motor_ccr_current = MOTOR_CCR_DEFAULT;
@@ -169,4 +177,25 @@ void motor_update(void)
         }
         motor_apply();
     }
+}
+
+/* Application directe du CCR par la boucle d'asservissement */
+void motor_set_ccr_direct(uint32_t ccr)
+{
+    if (ccr > MOTOR_CCR_MAX) {
+        ccr = MOTOR_CCR_MAX;
+    }
+    motor_ccr_current = ccr;
+    motor_ccr_target = ccr;
+    motor_apply();
+}
+
+uint32_t motor_get_ccr(void)
+{
+    return motor_ccr_current;
+}
+
+uint8_t motor_is_running(void)
+{
+    return motor_running;
 }
