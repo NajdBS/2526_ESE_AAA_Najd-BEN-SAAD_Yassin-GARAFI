@@ -56,7 +56,10 @@ Configuration de `TIM1` :
 * **Fréquence :** $f_{\text{PWM}} = 20\text{ kHz}$ ($T = 50\ \mu\text{s}$), avec $f_{\text{TIM1}} = 170\text{ MHz}$ et `Prescaler = 0`.
 * **Mode :** centre-aligné (`TIM_COUNTERMODE_CENTERALIGNED1`, compteur triangle $0 \rightarrow \text{ARR} \rightarrow 0$).
 * **Période (`ARR`) :**
-  $$\text{ARR} = \frac{170\text{ MHz}}{2 \times 20\text{ kHz}} - 1 = 4250 - 1 = 4249$$
+
+$$
+\text{ARR} = \frac{170\text{ MHz}}{2 \times 20\text{ kHz}} - 1 = 4250 - 1 = 4249
+$$
 * **Résolution :** $\log_2(4250) \approx 12\text{ bits}$ (supérieure aux 10 bits demandés).
 * **Temps mort :** d'après la datasheet des MOSFETs **IRF540N** ($t_{d(\text{off})} \approx 39\text{ ns}$, $t_f \approx 35\text{ ns}$) et des optocoupleurs **HCPL-315J**, on a réglé `DeadTime = 34` dans `tim.c` ($\approx 200\text{ ns}$ à $170\text{ MHz}$, selon le registre `TIMx_BDTR`).
 
@@ -124,9 +127,16 @@ Les capteurs utilisés sont des **LEM GO 10-SME/SP3** alimentés en $3{,}3\text{
 * Tension de repos à $0\text{ A}$ : $V_{\text{offset}} = 1{,}65\text{ V}$ ($\pm 20\text{ mV}$ selon datasheet).
 * Sensibilité : $S = 50\text{ mV/A} = 0{,}050\text{ V/A}$.
 * Formule :
-  $$V_{\text{out}} = 1{,}65 + 0{,}050 \cdot I \quad \text{donc} \quad I\text{ [A]} = 20 \cdot (V_{\text{out}} - 1{,}65)$$
+
+$$
+V_{\text{out}} = 1{,}65 + 0{,}050 \cdot I \quad \text{donc} \quad I\text{ [A]} = 20 \cdot (V_{\text{out}} - 1{,}65)
+$$
+
 * Sur l'ADC 12 bits ($0$ à $4095$ pour $0$ à $3{,}3\text{ V}$) :
-  $$V_{\text{out}}\text{ [mV]} = \frac{\text{ADC\_raw} \times 3300}{4095}, \qquad I\text{ [mA]} = (V_{\text{out}}\text{ [mV]} - 1650) \times 20$$
+
+$$
+V_{\text{out}}\text{ [mV]} = \frac{\text{ADC} \times 3300}{4095}, \qquad I\text{ [mA]} = (V_{\text{out}}\text{ [mV]} - 1650) \times 20
+$$
 
 #### Polling puis chaîne `TIM1 + ADC1 + DMA`
 * Une première version en Polling a validé l'offset au repos (`ADC ≈ 2060`, soit $\approx 1{,}66\text{ V}$) et la montée du courant en charge.
@@ -154,7 +164,10 @@ Les capteurs utilisés sont des **LEM GO 10-SME/SP3** alimentés en $3{,}3\text{
   1. `TIM3->CNT` est initialisé à `32768`.
   2. Toutes les $10\text{ ms}$ (dans l'IT `TIM7`), on lit `CNT`, on calcule `delta = CNT - 32768`, puis on remet `TIM3->CNT = 32768`.
   3. Calcul de la vitesse :
-     $$N\text{ [tr/min]} = \frac{\text{delta} \times 100 \times 60}{4096}$$
+
+$$
+N\text{ [tr/min]} = \frac{\text{delta} \times 100 \times 60}{4096}
+$$
 
 | Méthode du point milieu (tableau) | Tests courant et vitesse (`60%`, `40%`, `stop`) |
 | :---: | :---: |
