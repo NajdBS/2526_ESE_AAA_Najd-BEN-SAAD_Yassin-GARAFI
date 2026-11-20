@@ -61,7 +61,15 @@ $$
 \text{ARR} = \frac{170\text{ MHz}}{2 \times 20\text{ kHz}} - 1 = 4250 - 1 = 4249
 $$
 * **Résolution :** $\log_2(4250) \approx 12\text{ bits}$ (supérieure aux 10 bits demandés).
-* **Temps mort :** d'après la datasheet des MOSFETs **IRF540N** ($t_{d(\text{off})} \approx 39\text{ ns}$, $t_f \approx 35\text{ ns}$) et des optocoupleurs **HCPL-315J**, on a réglé `DeadTime = 34` dans `tim.c` ($\approx 200\text{ ns}$ à $170\text{ MHz}$, selon le registre `TIMx_BDTR`).
+* **Temps mort (`DeadTime`) :**
+  * Horloge du générateur : $t_{\text{DTS}} = \frac{1}{170\text{ MHz}} = 5{,}88\text{ ns}$
+  * Pour `DTG[7:5] = 0xx` (registre `TIMx_BDTR`) : $\text{DT} = \text{DTG}[7:0] \times t_{\text{dtg}}$ avec $t_{\text{dtg}} = t_{\text{DTS}}$.
+  * D'après la datasheet de l'**IRF540N** : $t_{d(\text{off})} = 39\text{ ns}$ et $t_f = 35\text{ ns}$, soit $t_{\text{off total}} = 39 + 35 = 74\text{ ns}$.
+  * Avec une marge de sécurité de 2 à 3 ($t_{\text{dead}} \approx 150\text{ à }200\text{ ns}$) :
+
+$$
+\text{DTG} = \frac{200\text{ ns}}{5{,}882\text{ ns}} = 34{,}002 \implies \text{DTG} = 34
+$$
 
 ![Registre temps mort STM32](images/registre_temps_mort.jpg)
 
